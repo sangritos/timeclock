@@ -1,0 +1,308 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TimeClock</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=DM+Sans:ital,wght@0,300;0,400;0,500;1,400&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --bg: #f5f4f0; --surface: #ffffff; --surface2: #eeede8; --border: #e0dfd8;
+    --text: #1a1917; --text2: #6b6860; --text3: #a8a69e;
+    --green: #166534; --green-bg: #dcfce7; --red: #991b1b; --red-bg: #fee2e2;
+    --amber: #92400e; --amber-bg: #fef3c7; --blue: #1e40af; --blue-bg: #dbeafe;
+    --mono: 'DM Mono', monospace; --sans: 'DM Sans', sans-serif;
+    --radius: 10px; --radius-lg: 16px;
+  }
+  body { font-family: var(--sans); background: var(--bg); color: var(--text); min-height: 100vh; display: flex; flex-direction: column; align-items: center; padding: 2.5rem 1rem 5rem; }
+  header { width: 100%; max-width: 560px; margin-bottom: 2rem; }
+  .wordmark { font-family: var(--mono); font-size: 13px; font-weight: 500; letter-spacing: 0.12em; text-transform: uppercase; color: var(--text3); }
+  .app { width: 100%; max-width: 560px; }
+  .card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 1.25rem 1.5rem; margin-bottom: 1rem; }
+  .card-label { font-family: var(--mono); font-size: 10px; font-weight: 500; letter-spacing: 0.1em; text-transform: uppercase; color: var(--text3); margin-bottom: 1rem; }
+  .field { display: flex; flex-direction: column; gap: 6px; margin-bottom: 12px; }
+  .field:last-child { margin-bottom: 0; }
+  .field label { font-size: 12px; color: var(--text2); }
+  input[type="text"], input[type="date"], input[type="time"], textarea {
+    font-family: var(--sans); font-size: 14px; color: var(--text); background: var(--surface);
+    border: 1px solid var(--border); border-radius: var(--radius); padding: 9px 12px;
+    width: 100%; outline: none; transition: border-color 0.15s; -webkit-appearance: none;
+  }
+  input:focus, textarea:focus { border-color: #999; }
+  .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .time-pair { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px; }
+  .time-block { background: var(--surface2); border-radius: var(--radius); padding: 14px; }
+  .time-block .tb-label { font-family: var(--mono); font-size: 10px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--text3); margin-bottom: 10px; }
+  .time-block input { margin-bottom: 8px; background: var(--surface); }
+  .time-block input:last-child { margin-bottom: 0; }
+  .duration-row { display: flex; align-items: center; gap: 10px; padding-top: 12px; border-top: 1px solid var(--border); }
+  .duration-label { font-size: 13px; color: var(--text2); }
+  .duration-val { font-family: var(--mono); font-size: 14px; font-weight: 500; color: var(--text); }
+  .voice-controls { display: flex; align-items: center; gap: 12px; margin-bottom: 12px; }
+  .rec-btn { display: flex; align-items: center; gap: 8px; background: none; border: 1px solid var(--border); border-radius: var(--radius); padding: 8px 16px; font-family: var(--sans); font-size: 13px; color: var(--text); cursor: pointer; transition: all 0.15s; white-space: nowrap; }
+  .rec-btn:hover { background: var(--surface2); }
+  .rec-btn.recording { background: var(--red-bg); border-color: #fca5a5; color: var(--red); }
+  .rec-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--red); flex-shrink: 0; }
+  .recording .rec-dot { animation: pulse 0.9s infinite; }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:0.2} }
+  .rec-status { font-size: 12px; color: var(--text3); }
+  .transcript-label { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
+  .transcript-label span { font-family: var(--mono); font-size: 10px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--text3); }
+  .lang-pill { display: none; font-size: 11px; padding: 2px 8px; border-radius: 20px; background: var(--amber-bg); color: var(--amber); }
+  .lang-pill.show { display: inline-block; }
+  textarea { min-height: 72px; resize: vertical; line-height: 1.5; }
+  .transcribing { font-size: 12px; color: var(--text3); margin-top: 6px; display: none; }
+  .transcribing.show { display: block; }
+  .submit-btn { width: 100%; padding: 13px; font-family: var(--sans); font-size: 15px; font-weight: 500; color: #fff; background: var(--text); border: none; border-radius: var(--radius-lg); cursor: pointer; transition: opacity 0.15s; margin-bottom: 10px; }
+  .submit-btn:hover { opacity: 0.85; }
+  .submit-btn:active { opacity: 0.7; }
+  .status { font-size: 13px; padding: 11px 14px; border-radius: var(--radius); display: none; margin-bottom: 1rem; }
+  .status.show { display: block; }
+  .status.success { background: var(--green-bg); color: var(--green); }
+  .status.error { background: var(--red-bg); color: var(--red); }
+  .status.info { background: var(--blue-bg); color: var(--blue); }
+  .log-wrap { margin-top: 2rem; }
+  .log-title { font-family: var(--mono); font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--text3); margin-bottom: 10px; }
+  .log-table-wrap { overflow-x: auto; border-radius: var(--radius-lg); }
+  table { width: 100%; font-size: 12px; border-collapse: collapse; }
+  th { text-align: left; font-weight: 500; color: var(--text2); padding: 7px 12px; border-bottom: 1px solid var(--border); white-space: nowrap; }
+  td { padding: 8px 12px; border-bottom: 1px solid var(--border); color: var(--text); vertical-align: top; }
+  tr:last-child td { border-bottom: none; }
+  td.note-cell { max-width: 160px; word-break: break-word; }
+  .empty { font-size: 13px; color: var(--text3); padding: 1.5rem; text-align: center; }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="wordmark">TimeClock</div>
+</header>
+
+<div class="app">
+
+  <div class="card">
+    <div class="card-label">Employee</div>
+    <div class="grid2">
+      <div class="field"><label>Name</label><input type="text" id="empName" placeholder="Jane Smith" /></div>
+      <div class="field"><label>Employee ID</label><input type="text" id="empId" placeholder="EMP-001" /></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-label">Time</div>
+    <div class="time-pair">
+      <div class="time-block">
+        <div class="tb-label">Clock in</div>
+        <input type="date" id="inDate" onchange="updateDuration()" />
+        <input type="time" id="inTime" onchange="updateDuration()" />
+      </div>
+      <div class="time-block">
+        <div class="tb-label">Clock out</div>
+        <input type="date" id="outDate" onchange="updateDuration()" />
+        <input type="time" id="outTime" onchange="updateDuration()" />
+      </div>
+    </div>
+    <div class="duration-row">
+      <span class="duration-label">Duration</span>
+      <span class="duration-val" id="durationVal">—</span>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-label">Voice note</div>
+    <div class="voice-controls">
+      <button class="rec-btn" id="recBtn" onclick="toggleRecording()">
+        <span class="rec-dot"></span>
+        <span id="recLabel">Record</span>
+      </button>
+      <span class="rec-status" id="recStatus">Tap to record a note</span>
+    </div>
+    <div class="transcript-label">
+      <span>Transcript</span>
+      <span class="lang-pill" id="langPill"></span>
+    </div>
+    <textarea id="transcript" placeholder="Transcript appears here — auto-translated to English if recorded in another language. You can also type notes directly."></textarea>
+    <div class="transcribing" id="transcribing">Transcribing with Claude...</div>
+  </div>
+
+  <div class="status" id="statusMsg"></div>
+  <button class="submit-btn" onclick="submitEntry()">Submit to Google Sheets</button>
+
+  <div class="log-wrap">
+    <div class="log-title">Session log</div>
+    <div class="card" style="padding:0;">
+      <div id="logContainer"><div class="empty">No entries yet this session</div></div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+  const ANTHROPIC_KEY = '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';
+  const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwHUkdlqjY9mmkC-lP-9U3GOwomcW0-PfRdjqwuZNMZDF9tbN2K_6MGxK5It-Xp7cNpFA/exec';
+  const SHEET_TAB = 'Sheet1';
+
+  let mediaRecorder = null, audioChunks = [], isRecording = false;
+  const sessionLog = [];
+
+  window.onload = () => {
+    const today = new Date().toISOString().split('T')[0];
+    document.getElementById('inDate').value = today;
+    document.getElementById('outDate').value = today;
+  };
+
+  function updateDuration() {
+    const inDate = document.getElementById('inDate').value;
+    const inTime = document.getElementById('inTime').value;
+    const outDate = document.getElementById('outDate').value;
+    const outTime = document.getElementById('outTime').value;
+    const el = document.getElementById('durationVal');
+    if (!inDate || !inTime || !outDate || !outTime) { el.textContent = '—'; return; }
+    const diff = Math.round((new Date(`${outDate}T${outTime}`) - new Date(`${inDate}T${inTime}`)) / 60000);
+    if (diff <= 0) { el.textContent = '—'; return; }
+    const h = Math.floor(diff / 60), m = diff % 60;
+    el.textContent = h > 0 ? `${h}h ${m}m` : `${m}m`;
+  }
+
+  async function toggleRecording() {
+    if (isRecording) {
+      mediaRecorder.stop();
+      isRecording = false;
+      document.getElementById('recBtn').classList.remove('recording');
+      document.getElementById('recLabel').textContent = 'Record';
+      document.getElementById('recStatus').textContent = 'Processing...';
+    } else {
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        audioChunks = [];
+        mediaRecorder = new MediaRecorder(stream);
+        mediaRecorder.ondataavailable = e => audioChunks.push(e.data);
+        mediaRecorder.onstop = async () => { stream.getTracks().forEach(t => t.stop()); await transcribeAudio(); };
+        mediaRecorder.start();
+        isRecording = true;
+        document.getElementById('recBtn').classList.add('recording');
+        document.getElementById('recLabel').textContent = 'Stop';
+        document.getElementById('recStatus').textContent = 'Recording...';
+      } catch(e) {
+        document.getElementById('recStatus').textContent = 'Microphone access denied.';
+      }
+    }
+  }
+
+  async function transcribeAudio() {
+    const blob = new Blob(audioChunks, { type: 'audio/webm' });
+    document.getElementById('transcribing').classList.add('show');
+    document.getElementById('recStatus').textContent = 'Transcribing...';
+    try {
+      const base64 = await blobToBase64(blob);
+      const res = await fetch('https://api.anthropic.com/v1/messages', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'x-api-key': ANTHROPIC_KEY, 'anthropic-version': '2023-06-01' },
+        body: JSON.stringify({
+          model: 'claude-sonnet-4-20250514',
+          max_tokens: 1000,
+          messages: [{ role: 'user', content: [
+            { type: 'text', text: 'Transcribe this audio. If not in English, translate to English. Respond with JSON only, no markdown: {"language": "<detected language>", "transcript": "<English text>"}' },
+            { type: 'document', source: { type: 'base64', media_type: 'audio/webm', data: base64 } }
+          ]}]
+        })
+      });
+      const data = await res.json();
+      const raw = data.content?.[0]?.text?.trim() || '{}';
+      let parsed;
+      try { parsed = JSON.parse(raw); } catch(e) { parsed = { language: 'Unknown', transcript: raw }; }
+      document.getElementById('transcript').value = parsed.transcript || '';
+      const pill = document.getElementById('langPill');
+      if (parsed.language && parsed.language.toLowerCase() !== 'english') {
+        pill.textContent = `Translated from ${parsed.language}`;
+        pill.classList.add('show');
+      } else { pill.classList.remove('show'); }
+      document.getElementById('recStatus').textContent = 'Done.';
+    } catch(e) {
+      document.getElementById('recStatus').textContent = 'Transcription failed.';
+    }
+    document.getElementById('transcribing').classList.remove('show');
+  }
+
+  function blobToBase64(blob) {
+    return new Promise((res, rej) => {
+      const r = new FileReader();
+      r.onload = () => res(r.result.split(',')[1]);
+      r.onerror = rej;
+      r.readAsDataURL(blob);
+    });
+  }
+
+  async function submitEntry() {
+    const name = document.getElementById('empName').value.trim();
+    const empId = document.getElementById('empId').value.trim();
+    const notes = document.getElementById('transcript').value.trim();
+    const inDate = document.getElementById('inDate').value;
+    const inTime = document.getElementById('inTime').value;
+    const outDate = document.getElementById('outDate').value;
+    const outTime = document.getElementById('outTime').value;
+
+    if (!name) { showStatus('Please enter employee name.', 'error'); return; }
+    if (!inTime && !outTime) { showStatus('Please enter at least a clock-in or clock-out time.', 'error'); return; }
+
+    const inStr = inDate && inTime ? `${inDate} ${inTime}` : '';
+    const outStr = outDate && outTime ? `${outDate} ${outTime}` : '';
+    const duration = document.getElementById('durationVal').textContent === '—' ? '' : document.getElementById('durationVal').textContent;
+    const submittedAt = new Date().toLocaleString();
+    const row = [name, empId, inStr, outStr, duration, notes, submittedAt];
+
+    showStatus('Submitting...', 'info');
+    try {
+      await fetch(SCRIPT_URL, {
+        method: 'POST',
+        mode: 'no-cors',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ tab: SHEET_TAB, row })
+      });
+      showStatus('Submitted to Google Sheets!', 'success');
+      addToLog({ name, empId, inStr, outStr, duration, notes });
+      resetForm();
+    } catch(e) {
+      showStatus('Error: ' + e.message, 'error');
+    }
+  }
+
+  function showStatus(msg, type) {
+    const el = document.getElementById('statusMsg');
+    el.textContent = msg;
+    el.className = 'status show ' + type;
+  }
+
+  function resetForm() {
+    document.getElementById('empName').value = '';
+    document.getElementById('empId').value = '';
+    document.getElementById('inTime').value = '';
+    document.getElementById('outTime').value = '';
+    const today = new Date().toISOString().split('T')[0];
+    document.getElementById('inDate').value = today;
+    document.getElementById('outDate').value = today;
+    document.getElementById('durationVal').textContent = '—';
+    document.getElementById('transcript').value = '';
+    document.getElementById('langPill').classList.remove('show');
+    document.getElementById('recStatus').textContent = 'Tap to record a note';
+  }
+
+  function addToLog(e) {
+    sessionLog.unshift(e);
+    const rows = sessionLog.map(e => `<tr>
+      <td>${e.name}</td><td>${e.empId||'—'}</td>
+      <td style="white-space:nowrap">${e.inStr||'—'}</td>
+      <td style="white-space:nowrap">${e.outStr||'—'}</td>
+      <td>${e.duration||'—'}</td>
+      <td class="note-cell">${e.notes||'—'}</td>
+    </tr>`).join('');
+    document.getElementById('logContainer').innerHTML = `
+      <div class="log-table-wrap"><table>
+        <thead><tr><th>Name</th><th>ID</th><th>Clock in</th><th>Clock out</th><th>Duration</th><th>Notes</th></tr></thead>
+        <tbody>${rows}</tbody>
+      </table></div>`;
+  }
+</script>
+</body>
+</html>
